@@ -1,10 +1,22 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
+import Constants from 'expo-constants';
+
 const STORAGE_KEY_SERVER_URL = 'librechat_server_url';
 
-export const DEFAULT_DEV_URL =
-  Platform.OS === 'android' ? 'http://10.0.2.2:3080' : 'http://localhost:3080';
+export const getDetectedDevUrl = (): string => {
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const hostIp = hostUri.split(':')[0];
+    if (hostIp && hostIp !== 'localhost' && hostIp !== '127.0.0.1') {
+      return `http://${hostIp}:3080`;
+    }
+  }
+  return Platform.OS === 'android' ? 'http://10.0.2.2:3080' : 'http://localhost:3080';
+};
+
+export const DEFAULT_DEV_URL = getDetectedDevUrl();
 
 let cachedServerUrl: string | null = null;
 
@@ -62,7 +74,8 @@ export async function testServerConnection(url: string): Promise<ServerHealthChe
       status: response.status,
       message: `Server returned status ${response.status}`,
     };
-  } catch (error: any) {
+  } catch (err) {
+    const error = err as Error;
     return {
       ok: false,
       status: 0,

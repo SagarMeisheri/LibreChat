@@ -53,32 +53,39 @@ export default function ServerSelectScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="bg-background flex-1">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6 py-8 justify-between">
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'space-between',
+            paddingHorizontal: 24,
+            paddingVertical: 32,
+          }}
+        >
           <View>
             {/* Header Icon & Title */}
-            <View className="items-center mb-8">
-              <View className="w-16 h-16 rounded-2xl bg-surface-secondary border border-border-light items-center justify-center mb-4">
+            <View className="mb-8 items-center">
+              <View className="mb-4 h-16 w-16 items-center justify-center rounded-2xl border border-border-light bg-surface-secondary">
                 <Server size={32} color="#10a37f" />
               </View>
-              <Text className="text-text-primary text-2xl font-bold tracking-tight">
+              <Text className="text-2xl font-bold tracking-tight text-text-primary">
                 Connect to LibreChat
               </Text>
-              <Text className="text-text-secondary text-sm text-center mt-2 px-4">
+              <Text className="mt-2 px-4 text-center text-sm text-text-secondary">
                 Enter your LibreChat backend URL to connect this mobile app.
               </Text>
             </View>
 
             {/* Server URL Input Box */}
-            <View className="bg-surface-primary p-4 rounded-xl border border-border-light mb-4">
-              <Text className="text-text-secondary text-xs font-semibold uppercase tracking-wider mb-2">
+            <View className="mb-4 rounded-xl border border-border-light bg-surface-primary p-4">
+              <Text className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-secondary">
                 Server Base URL
               </Text>
-              <View className="flex-row items-center bg-surface-secondary rounded-lg border border-border-medium px-3 py-2.5">
+              <View className="flex-row items-center rounded-lg border border-border-medium bg-surface-secondary px-3 py-2.5">
                 <Wifi size={18} color="#8e8e8e" />
                 <TextInput
                   value={url}
@@ -90,15 +97,17 @@ export default function ServerSelectScreen() {
                   placeholderTextColor="#666666"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  className="flex-1 text-text-primary text-sm ml-2.5"
+                  className="ml-2.5 flex-1 text-sm text-text-primary"
                 />
               </View>
 
               {/* Status Banner */}
               {testResult && (
                 <View
-                  className={`flex-row items-center mt-3 p-3 rounded-lg ${
-                    testResult.ok ? 'bg-[#10a37f]/10 border border-brand-green/30' : 'bg-red-500/10 border border-red-500/30'
+                  className={`mt-3 flex-row items-center rounded-lg p-3 ${
+                    testResult.ok
+                      ? 'border-brand-green/30 border bg-[#10a37f]/10'
+                      : 'border border-red-500/30 bg-red-500/10'
                   }`}
                 >
                   {testResult.ok ? (
@@ -107,7 +116,7 @@ export default function ServerSelectScreen() {
                     <AlertCircle size={16} color="#ef4444" />
                   )}
                   <Text
-                    className={`text-xs ml-2 flex-1 font-medium ${
+                    className={`ml-2 flex-1 text-xs font-medium ${
                       testResult.ok ? 'text-brand-green' : 'text-red-400'
                     }`}
                   >
@@ -119,7 +128,7 @@ export default function ServerSelectScreen() {
 
             {/* Quick Presets */}
             <View className="mb-6">
-              <Text className="text-text-tertiary text-xs font-semibold uppercase mb-2">
+              <Text className="mb-2 text-xs font-semibold uppercase text-text-tertiary">
                 Quick Selection
               </Text>
               <View className="flex-row flex-wrap gap-2">
@@ -128,9 +137,9 @@ export default function ServerSelectScreen() {
                     setUrl(DEFAULT_DEV_URL);
                     handleTestConnection(DEFAULT_DEV_URL);
                   }}
-                  className="bg-surface-secondary px-3 py-1.5 rounded-lg border border-border-light"
+                  className="rounded-lg border border-border-light bg-surface-secondary px-3 py-1.5"
                 >
-                  <Text className="text-text-secondary text-xs">Localhost / Emulator</Text>
+                  <Text className="text-xs text-text-secondary">Localhost / Emulator</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -138,9 +147,9 @@ export default function ServerSelectScreen() {
                     const sample = 'http://192.168.1.100:3080';
                     setUrl(sample);
                   }}
-                  className="bg-surface-secondary px-3 py-1.5 rounded-lg border border-border-light"
+                  className="rounded-lg border border-border-light bg-surface-secondary px-3 py-1.5"
                 >
-                  <Text className="text-text-secondary text-xs">LAN IP Template</Text>
+                  <Text className="text-xs text-text-secondary">LAN IP Template</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -151,21 +160,21 @@ export default function ServerSelectScreen() {
             <TouchableOpacity
               onPress={() => handleTestConnection()}
               disabled={testing || !url.trim()}
-              className="w-full bg-surface-secondary py-3.5 rounded-xl border border-border-light items-center justify-center"
+              className="w-full items-center justify-center rounded-xl border border-border-light bg-surface-secondary py-3.5"
             >
               {testing ? (
                 <ActivityIndicator size="small" color="#ececec" />
               ) : (
-                <Text className="text-text-primary font-semibold text-sm">Test Connection</Text>
+                <Text className="text-sm font-semibold text-text-primary">Test Connection</Text>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleSaveAndContinue}
               disabled={!url.trim()}
-              className="w-full bg-brand-green py-3.5 rounded-xl items-center justify-center flex-row shadow-lg shadow-brand-green/20"
+              className="bg-brand-green shadow-brand-green/20 w-full flex-row items-center justify-center rounded-xl py-3.5 shadow-lg"
             >
-              <Text className="text-white font-bold text-sm mr-2">Continue to Login</Text>
+              <Text className="mr-2 text-sm font-bold text-white">Continue to Login</Text>
               <ArrowRight size={16} color="#ffffff" />
             </TouchableOpacity>
           </View>

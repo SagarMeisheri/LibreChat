@@ -237,7 +237,7 @@ export default [
   {
     files: ['**/*.ts', '**/*.tsx'],
     // e2e specs keep only the non-type-checked recommended rules from the block above.
-    ignores: ['packages/**/*', 'client/vite.config.ts', 'e2e/**/*'],
+    ignores: ['packages/**/*', 'apps/**/*', 'client/vite.config.ts', 'e2e/**/*'],
     plugins: {
       '@typescript-eslint': typescriptEslintEslintPlugin,
       jest: fixupPluginRules(jest),
@@ -275,6 +275,16 @@ export default [
       'react-hooks/exhaustive-deps': 'warn',
       // General
       'no-constant-binary-expression': 'off',
+    },
+  },
+  {
+    // Mobile apps configuration block
+    files: ['apps/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/ban-ts-comment': 'off',
+      'i18next/no-literal-string': 'off',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
   {

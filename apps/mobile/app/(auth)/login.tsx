@@ -48,9 +48,10 @@ export default function LoginScreen() {
       } else {
         setErrorMsg('Invalid response from server. No token received.');
       }
-    } catch (err: any) {
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string };
       const serverMessage =
-        err.response?.data?.message || err.message || 'Login failed. Please check credentials.';
+        error.response?.data?.message || error.message || 'Login failed. Please check credentials.';
       setErrorMsg(serverMessage);
     } finally {
       setLoading(false);
@@ -58,34 +59,41 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="bg-background flex-1">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6 py-8 justify-between">
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'space-between',
+            paddingHorizontal: 24,
+            paddingVertical: 32,
+          }}
+        >
           <View>
             {/* Server Badge */}
             <TouchableOpacity
               onPress={() => router.push('/server-select')}
-              className="flex-row items-center self-center bg-surface-secondary px-3 py-1.5 rounded-full border border-border-light mb-8"
+              className="mb-8 flex-row items-center self-center rounded-full border border-border-light bg-surface-secondary px-3 py-1.5"
             >
               <Globe size={13} color="#10a37f" />
-              <Text className="text-text-secondary text-xs ml-1.5 font-medium" numberOfLines={1}>
+              <Text className="ml-1.5 text-xs font-medium text-text-secondary" numberOfLines={1}>
                 {serverUrl || 'Configure Server'}
               </Text>
-              <Text className="text-brand-green text-xs font-semibold ml-2">Change</Text>
+              <Text className="text-brand-green ml-2 text-xs font-semibold">Change</Text>
             </TouchableOpacity>
 
             {/* Header Brand */}
-            <View className="items-center mb-8">
-              <View className="w-16 h-16 rounded-2xl bg-surface-secondary border border-border-light items-center justify-center mb-4">
+            <View className="mb-8 items-center">
+              <View className="mb-4 h-16 w-16 items-center justify-center rounded-2xl border border-border-light bg-surface-secondary">
                 <LogIn size={28} color="#10a37f" />
               </View>
-              <Text className="text-text-primary text-2xl font-bold tracking-tight">
+              <Text className="text-2xl font-bold tracking-tight text-text-primary">
                 Welcome back
               </Text>
-              <Text className="text-text-secondary text-sm mt-1">
+              <Text className="mt-1 text-sm text-text-secondary">
                 Sign in to your LibreChat account
               </Text>
             </View>
@@ -93,10 +101,10 @@ export default function LoginScreen() {
             {/* Form Fields */}
             <View className="gap-4">
               <View>
-                <Text className="text-text-secondary text-xs font-semibold uppercase mb-1.5">
+                <Text className="mb-1.5 text-xs font-semibold uppercase text-text-secondary">
                   Email
                 </Text>
-                <View className="flex-row items-center bg-surface-primary rounded-xl border border-border-light px-3.5 py-3">
+                <View className="flex-row items-center rounded-xl border border-border-light bg-surface-primary px-3.5 py-3">
                   <Mail size={18} color="#8e8e8e" />
                   <TextInput
                     value={email}
@@ -109,16 +117,16 @@ export default function LoginScreen() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
-                    className="flex-1 text-text-primary text-sm ml-2.5"
+                    className="ml-2.5 flex-1 text-sm text-text-primary"
                   />
                 </View>
               </View>
 
               <View>
-                <Text className="text-text-secondary text-xs font-semibold uppercase mb-1.5">
+                <Text className="mb-1.5 text-xs font-semibold uppercase text-text-secondary">
                   Password
                 </Text>
-                <View className="flex-row items-center bg-surface-primary rounded-xl border border-border-light px-3.5 py-3">
+                <View className="flex-row items-center rounded-xl border border-border-light bg-surface-primary px-3.5 py-3">
                   <Lock size={18} color="#8e8e8e" />
                   <TextInput
                     value={password}
@@ -129,7 +137,7 @@ export default function LoginScreen() {
                     placeholder="••••••••"
                     placeholderTextColor="#666666"
                     secureTextEntry
-                    className="flex-1 text-text-primary text-sm ml-2.5"
+                    className="ml-2.5 flex-1 text-sm text-text-primary"
                   />
                 </View>
               </View>
@@ -137,9 +145,9 @@ export default function LoginScreen() {
 
             {/* Error Banner */}
             {errorMsg && (
-              <View className="flex-row items-center bg-red-500/10 border border-red-500/30 p-3 rounded-xl mt-4">
+              <View className="mt-4 flex-row items-center rounded-xl border border-red-500/30 bg-red-500/10 p-3">
                 <AlertCircle size={16} color="#ef4444" />
-                <Text className="text-red-400 text-xs ml-2 flex-1 font-medium">{errorMsg}</Text>
+                <Text className="ml-2 flex-1 text-xs font-medium text-red-400">{errorMsg}</Text>
               </View>
             )}
           </View>
@@ -149,12 +157,12 @@ export default function LoginScreen() {
             <TouchableOpacity
               onPress={handleLogin}
               disabled={loading}
-              className="w-full bg-brand-green py-3.5 rounded-xl items-center justify-center shadow-lg shadow-brand-green/20"
+              className="bg-brand-green shadow-brand-green/20 w-full items-center justify-center rounded-xl py-3.5 shadow-lg"
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Text className="text-white font-bold text-sm">Sign In</Text>
+                <Text className="text-sm font-bold text-white">Sign In</Text>
               )}
             </TouchableOpacity>
           </View>
