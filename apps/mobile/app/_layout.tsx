@@ -6,7 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { View, ActivityIndicator } from 'react-native';
 import { getAuthToken } from '../src/services/storage';
-import { getServerUrl } from '../src/services/config';
+import { hasSavedServerUrl } from '../src/services/config';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,13 +25,13 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const serverUrl = await getServerUrl();
+        const hasSaved = await hasSavedServerUrl();
         const token = await getAuthToken();
 
         const inAuthGroup = segments[0] === '(auth)';
         const onServerSelect = segments[0] === 'server-select';
 
-        if (!serverUrl && !onServerSelect) {
+        if (!hasSaved && !onServerSelect) {
           router.replace('/server-select');
         } else if (!token && !inAuthGroup && !onServerSelect) {
           router.replace('/(auth)/login');

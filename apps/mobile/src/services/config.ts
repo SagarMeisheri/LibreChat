@@ -20,6 +20,15 @@ export const DEFAULT_DEV_URL = getDetectedDevUrl();
 
 let cachedServerUrl: string | null = null;
 
+export async function hasSavedServerUrl(): Promise<boolean> {
+  try {
+    const saved = await SecureStore.getItemAsync(STORAGE_KEY_SERVER_URL);
+    return Boolean(saved);
+  } catch {
+    return false;
+  }
+}
+
 export async function getServerUrl(): Promise<string> {
   if (cachedServerUrl) {
     return cachedServerUrl;
