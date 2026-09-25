@@ -9,7 +9,8 @@
   "workspaces": [
     "api",
     "client",
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "prepare": "node -e \"import('husky').then((h) => h.default()).catch(() => {})\"",
