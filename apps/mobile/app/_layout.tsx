@@ -46,11 +46,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     checkAuth();
-  }, [segments]);
+  }, [segments, router]);
 
   if (loading) {
     return (
-      <View className="flex-1 bg-background items-center justify-center">
+      <View className="bg-background flex-1 items-center justify-center">
         <ActivityIndicator size="large" color="#10a37f" />
       </View>
     );

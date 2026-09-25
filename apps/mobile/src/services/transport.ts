@@ -3,13 +3,18 @@ import { getAuthToken } from './storage';
 
 export interface StreamEvent {
   event?: string;
-  data: any;
+  data: unknown;
 }
 
 export interface StreamCallbacks {
   onDelta?: (delta: string) => void;
   onThinking?: (thought: string) => void;
-  onToolCall?: (toolCall: { id: string; name: string; args?: any; status: string }) => void;
+  onToolCall?: (toolCall: {
+    id: string;
+    name: string;
+    args?: Record<string, unknown>;
+    status: string;
+  }) => void;
   onToolOutput?: (toolOutput: { id: string; output: string }) => void;
   onArtifact?: (artifact: { type: string; title: string; content: string }) => void;
   onComplete?: (finalData: { conversationId: string; messageId: string; text: string }) => void;
@@ -66,7 +71,9 @@ export async function sendStreamingMessage(
       try {
         const parsed = JSON.parse(errorText);
         errMsg = parsed.message || errMsg;
-      } catch {}
+      } catch {
+        // Fallback to default message if error response is not JSON
+      }
       throw new Error(errMsg);
     }
 
@@ -74,7 +81,9 @@ export async function sendStreamingMessage(
       throw new Error('Response body is null, cannot stream');
     }
 
-    const reader = (response.body as any).getReader();
+    const reader = (
+      response.body as unknown as { getReader: () => ReadableStreamDefaultReader<Uint8Array> }
+    ).getReader();
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
     let accumulatedText = '';
@@ -146,7 +155,9 @@ export async function sendStreamingMessage(
             }
 
             // Check for code artifact blocks in the accumulated text
-            const artifactMatch = accumulatedText.match(/```(html|svg|mermaid|jsx|tsx)\n([\s\S]*?)```/);
+            const artifactMatch = accumulatedText.match(
+              /```(html|svg|mermaid|jsx|tsx)\n([\s\S]*?)```/,
+            );
             if (artifactMatch) {
               callbacks.onArtifact?.({
                 type: artifactMatch[1],
@@ -171,7 +182,9 @@ export async function sendStreamingMessage(
                 const textChunk = JSON.parse(rawData.slice(2));
                 accumulatedText += textChunk;
                 callbacks.onDelta?.(textChunk);
-              } catch {}
+              } catch {
+                // Ignore malformed text chunk
+              }
             }
           }
         }
@@ -183,8 +196,9 @@ export async function sendStreamingMessage(
       messageId: activeMessageId,
       text: accumulatedText,
     });
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
+  } catch (error) {
+    const err = error as Error;
+    if (err.name === 'AbortError') {
       callbacks.onComplete?.({
         conversationId: params.conversationId || '',
         messageId: '',
@@ -192,6 +206,6 @@ export async function sendStreamingMessage(
       });
       return;
     }
-    callbacks.onError?.(error);
+    callbacks.onError?.(err);
   }
 }

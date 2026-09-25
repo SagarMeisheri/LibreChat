@@ -48,7 +48,7 @@ interface MessageItem {
   toolCall?: {
     id: string;
     name: string;
-    args?: any;
+    args?: Record<string, unknown>;
     status: string;
   };
   artifact?: ArtifactData;
@@ -108,10 +108,10 @@ export default function ChatScreen() {
     try {
       const rawMessages = await fetchConversationMessages(convo.conversationId);
       if (Array.isArray(rawMessages)) {
-        const mapped: MessageItem[] = rawMessages.map((m: any) => ({
-          id: m.messageId || Math.random().toString(),
-          role: m.isCreatedByUser ? 'user' : 'assistant',
-          content: m.text || '',
+        const mapped: MessageItem[] = rawMessages.map((m: Record<string, unknown>) => ({
+          id: (m.messageId as string) || Math.random().toString(),
+          role: (m.isCreatedByUser ? 'user' : 'assistant') as 'user' | 'assistant',
+          content: (m.text as string) || '',
         }));
         setMessages(mapped);
       }
@@ -134,7 +134,7 @@ export default function ChatScreen() {
       if (activeConversationId === conversationId) {
         handleNewChat();
       }
-    } catch (err) {
+    } catch {
       Alert.alert('Error', 'Failed to delete conversation.');
     }
   };
@@ -229,12 +229,12 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="bg-background flex-1">
       {/* Top Header Bar */}
-      <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border-light bg-surface-primary">
+      <View className="flex-row items-center justify-between border-b border-border-light bg-surface-primary px-4 py-2.5">
         <TouchableOpacity
           onPress={() => setDrawerOpen(true)}
-          className="w-9 h-9 rounded-lg bg-surface-secondary items-center justify-center border border-border-light"
+          className="h-9 w-9 items-center justify-center rounded-lg border border-border-light bg-surface-secondary"
         >
           <Menu size={18} color="#ececec" />
         </TouchableOpacity>
@@ -242,10 +242,10 @@ export default function ChatScreen() {
         {/* Model Switcher Pill */}
         <TouchableOpacity
           onPress={() => setModelPickerOpen(true)}
-          className="flex-row items-center bg-surface-secondary px-3 py-1.5 rounded-full border border-border-light"
+          className="flex-row items-center rounded-full border border-border-light bg-surface-secondary px-3 py-1.5"
         >
           <Sparkles size={13} color="#10a37f" />
-          <Text className="text-text-primary text-xs font-semibold mx-1.5">
+          <Text className="mx-1.5 text-xs font-semibold text-text-primary">
             {selectedModel.name}
           </Text>
           <ChevronDown size={13} color="#8e8e8e" />
@@ -253,7 +253,7 @@ export default function ChatScreen() {
 
         <TouchableOpacity
           onPress={handleNewChat}
-          className="w-9 h-9 rounded-lg bg-surface-secondary items-center justify-center border border-border-light"
+          className="h-9 w-9 items-center justify-center rounded-lg border border-border-light bg-surface-secondary"
         >
           <Plus size={18} color="#ececec" />
         </TouchableOpacity>
@@ -272,11 +272,11 @@ export default function ChatScreen() {
         >
           {messages.length === 0 ? (
             <View className="items-center justify-center py-24">
-              <View className="w-14 h-14 rounded-2xl bg-surface-secondary border border-border-light items-center justify-center mb-4">
+              <View className="mb-4 h-14 w-14 items-center justify-center rounded-2xl border border-border-light bg-surface-secondary">
                 <Bot size={28} color="#10a37f" />
               </View>
-              <Text className="text-text-primary text-lg font-bold">How can I help you today?</Text>
-              <Text className="text-text-tertiary text-xs mt-1">
+              <Text className="text-lg font-bold text-text-primary">How can I help you today?</Text>
+              <Text className="mt-1 text-xs text-text-tertiary">
                 Connected with {selectedModel.name}
               </Text>
             </View>
@@ -287,7 +287,7 @@ export default function ChatScreen() {
                 className={`mb-4 flex-row ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {item.role === 'assistant' && (
-                  <View className="w-7 h-7 rounded-lg bg-brand-green/20 items-center justify-center mr-2.5 mt-1 border border-brand-green/30">
+                  <View className="bg-brand-green/20 border-brand-green/30 mr-2.5 mt-1 h-7 w-7 items-center justify-center rounded-lg border">
                     <Bot size={15} color="#10a37f" />
                   </View>
                 )}
@@ -295,34 +295,34 @@ export default function ChatScreen() {
                 <View
                   className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                     item.role === 'user'
-                      ? 'bg-surface-secondary border border-border-light'
-                      : 'bg-surface-primary border border-border-light'
+                      ? 'border border-border-light bg-surface-secondary'
+                      : 'border border-border-light bg-surface-primary'
                   }`}
                 >
                   {/* Reasoning / Thinking Card */}
                   {item.thought && (
-                    <View className="mb-2 p-2.5 rounded-lg bg-surface-secondary border border-border-medium/40">
-                      <View className="flex-row items-center mb-1">
+                    <View className="mb-2 rounded-lg border border-border-medium/40 bg-surface-secondary p-2.5">
+                      <View className="mb-1 flex-row items-center">
                         <Brain size={12} color="#a5d6ff" />
-                        <Text className="text-[#a5d6ff] text-[11px] font-semibold ml-1.5">
+                        <Text className="ml-1.5 text-[11px] font-semibold text-[#a5d6ff]">
                           Thinking Process
                         </Text>
                       </View>
-                      <Text className="text-text-secondary text-xs italic">{item.thought}</Text>
+                      <Text className="text-xs italic text-text-secondary">{item.thought}</Text>
                     </View>
                   )}
 
                   {/* Tool Call Card */}
                   {item.toolCall && (
-                    <View className="mb-2 p-2.5 rounded-lg bg-surface-secondary border border-border-medium/40 flex-row items-center justify-between">
+                    <View className="mb-2 flex-row items-center justify-between rounded-lg border border-border-medium/40 bg-surface-secondary p-2.5">
                       <View className="flex-row items-center">
                         <Wrench size={13} color="#f59e0b" />
-                        <Text className="text-text-primary text-xs font-medium ml-1.5">
+                        <Text className="ml-1.5 text-xs font-medium text-text-primary">
                           Tool: {item.toolCall.name}
                         </Text>
                       </View>
-                      <View className="bg-amber-500/20 px-2 py-0.5 rounded">
-                        <Text className="text-amber-400 text-[10px] uppercase font-semibold">
+                      <View className="rounded bg-amber-500/20 px-2 py-0.5">
+                        <Text className="text-[10px] font-semibold uppercase text-amber-400">
                           {item.toolCall.status}
                         </Text>
                       </View>
@@ -330,7 +330,7 @@ export default function ChatScreen() {
                   )}
 
                   {/* Main Message Text */}
-                  <Text className="text-text-primary text-sm leading-5">
+                  <Text className="text-sm leading-5 text-text-primary">
                     {item.content || (isGenerating && item.role === 'assistant' ? '...' : '')}
                   </Text>
 
@@ -338,14 +338,14 @@ export default function ChatScreen() {
                   {item.artifact && (
                     <TouchableOpacity
                       onPress={() => setActiveArtifact(item.artifact!)}
-                      className="mt-3 flex-row items-center bg-brand-green/15 border border-brand-green/40 px-3 py-2 rounded-xl"
+                      className="bg-brand-green/15 border-brand-green/40 mt-3 flex-row items-center rounded-xl border px-3 py-2"
                     >
                       <Code2 size={14} color="#10a37f" />
                       <View className="ml-2 flex-1">
-                        <Text className="text-brand-green font-semibold text-xs">
+                        <Text className="text-brand-green text-xs font-semibold">
                           {item.artifact.title}
                         </Text>
-                        <Text className="text-text-tertiary text-[10px] uppercase">
+                        <Text className="text-[10px] uppercase text-text-tertiary">
                           Tap to view preview & code
                         </Text>
                       </View>
@@ -354,7 +354,7 @@ export default function ChatScreen() {
                 </View>
 
                 {item.role === 'user' && (
-                  <View className="w-7 h-7 rounded-lg bg-surface-secondary items-center justify-center ml-2.5 mt-1 border border-border-light">
+                  <View className="ml-2.5 mt-1 h-7 w-7 items-center justify-center rounded-lg border border-border-light bg-surface-secondary">
                     <UserIcon size={14} color="#ececec" />
                   </View>
                 )}
@@ -364,8 +364,8 @@ export default function ChatScreen() {
         </ScrollView>
 
         {/* Input Composer Bar */}
-        <View className="p-3 bg-surface-primary border-t border-border-light">
-          <View className="flex-row items-center bg-surface-secondary rounded-2xl border border-border-medium px-3.5 py-1.5">
+        <View className="border-t border-border-light bg-surface-primary p-3">
+          <View className="flex-row items-center rounded-2xl border border-border-medium bg-surface-secondary px-3.5 py-1.5">
             <TextInput
               value={inputText}
               onChangeText={setInputText}
@@ -373,13 +373,13 @@ export default function ChatScreen() {
               placeholderTextColor="#666666"
               multiline
               maxLength={4000}
-              className="flex-1 text-text-primary text-sm max-h-24 py-2"
+              className="max-h-24 flex-1 py-2 text-sm text-text-primary"
             />
 
             {isGenerating ? (
               <TouchableOpacity
                 onPress={handleAbort}
-                className="w-8 h-8 rounded-full bg-red-500/20 items-center justify-center border border-red-500/40 ml-2"
+                className="ml-2 h-8 w-8 items-center justify-center rounded-full border border-red-500/40 bg-red-500/20"
               >
                 <Square size={14} color="#ef4444" fill="#ef4444" />
               </TouchableOpacity>
@@ -387,7 +387,7 @@ export default function ChatScreen() {
               <TouchableOpacity
                 onPress={handleSendMessage}
                 disabled={!inputText.trim()}
-                className={`w-8 h-8 rounded-full items-center justify-center ml-2 ${
+                className={`ml-2 h-8 w-8 items-center justify-center rounded-full ${
                   inputText.trim() ? 'bg-brand-green' : 'bg-surface-tertiary'
                 }`}
               >
@@ -403,11 +403,11 @@ export default function ChatScreen() {
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => setModelPickerOpen(false)}
-          className="flex-1 bg-black/60 justify-end"
+          className="flex-1 justify-end bg-black/60"
         >
-          <View className="bg-surface-primary rounded-t-3xl border-t border-border-light p-6">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-text-primary text-base font-bold">Select Model</Text>
+          <View className="rounded-t-3xl border-t border-border-light bg-surface-primary p-6">
+            <View className="mb-4 flex-row items-center justify-between">
+              <Text className="text-base font-bold text-text-primary">Select Model</Text>
               <TouchableOpacity onPress={() => setModelPickerOpen(false)}>
                 <X size={18} color="#ececec" />
               </TouchableOpacity>
@@ -421,14 +421,14 @@ export default function ChatScreen() {
                     setSelectedModel(model);
                     setModelPickerOpen(false);
                   }}
-                  className={`p-3.5 rounded-xl border flex-row items-center justify-between ${
+                  className={`flex-row items-center justify-between rounded-xl border p-3.5 ${
                     selectedModel.id === model.id
                       ? 'bg-brand-green/10 border-brand-green'
-                      : 'bg-surface-secondary border-border-light'
+                      : 'border-border-light bg-surface-secondary'
                   }`}
                 >
-                  <Text className="text-text-primary font-semibold text-sm">{model.name}</Text>
-                  <Text className="text-text-tertiary text-xs uppercase">{model.endpoint}</Text>
+                  <Text className="text-sm font-semibold text-text-primary">{model.name}</Text>
+                  <Text className="text-xs uppercase text-text-tertiary">{model.endpoint}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -438,25 +438,25 @@ export default function ChatScreen() {
 
       {/* Conversation History Drawer Modal */}
       <Modal visible={drawerOpen} animationType="slide">
-        <SafeAreaView className="flex-1 bg-background">
-          <View className="flex-row items-center justify-between px-5 py-4 border-b border-border-light bg-surface-primary">
-            <Text className="text-text-primary font-bold text-lg">Conversations</Text>
+        <SafeAreaView className="bg-background flex-1">
+          <View className="flex-row items-center justify-between border-b border-border-light bg-surface-primary px-5 py-4">
+            <Text className="text-lg font-bold text-text-primary">Conversations</Text>
             <TouchableOpacity
               onPress={() => setDrawerOpen(false)}
-              className="w-8 h-8 rounded-full bg-surface-secondary items-center justify-center border border-border-light"
+              className="h-8 w-8 items-center justify-center rounded-full border border-border-light bg-surface-secondary"
             >
               <X size={18} color="#ececec" />
             </TouchableOpacity>
           </View>
 
           {/* New Chat Button */}
-          <View className="p-4 border-b border-border-light">
+          <View className="border-b border-border-light p-4">
             <TouchableOpacity
               onPress={handleNewChat}
-              className="flex-row items-center justify-center bg-brand-green py-3 rounded-xl"
+              className="bg-brand-green flex-row items-center justify-center rounded-xl py-3"
             >
               <Plus size={16} color="#ffffff" />
-              <Text className="text-white font-bold text-sm ml-2">New Conversation</Text>
+              <Text className="ml-2 text-sm font-bold text-white">New Conversation</Text>
             </TouchableOpacity>
           </View>
 
@@ -471,15 +471,15 @@ export default function ChatScreen() {
               keyExtractor={(item) => item.conversationId}
               contentContainerStyle={{ padding: 16 }}
               renderItem={({ item }) => (
-                <View className="flex-row items-center justify-between bg-surface-primary mb-2.5 p-3.5 rounded-xl border border-border-light">
+                <View className="mb-2.5 flex-row items-center justify-between rounded-xl border border-border-light bg-surface-primary p-3.5">
                   <TouchableOpacity
                     onPress={() => handleSelectConversation(item)}
-                    className="flex-1 mr-3"
+                    className="mr-3 flex-1"
                   >
-                    <Text className="text-text-primary font-medium text-sm" numberOfLines={1}>
+                    <Text className="text-sm font-medium text-text-primary" numberOfLines={1}>
                       {item.title || 'Untitled Conversation'}
                     </Text>
-                    <Text className="text-text-tertiary text-[11px] mt-1">
+                    <Text className="mt-1 text-[11px] text-text-tertiary">
                       {new Date(item.updatedAt).toLocaleDateString()}
                     </Text>
                   </TouchableOpacity>
@@ -494,29 +494,29 @@ export default function ChatScreen() {
               )}
               ListEmptyComponent={
                 <View className="items-center justify-center py-16">
-                  <Text className="text-text-tertiary text-sm">No conversations yet.</Text>
+                  <Text className="text-sm text-text-tertiary">No conversations yet.</Text>
                 </View>
               }
             />
           )}
 
           {/* User Profile & Sign Out Footer */}
-          <View className="p-4 border-t border-border-light bg-surface-primary flex-row items-center justify-between">
-            <View className="flex-1 mr-3">
-              <Text className="text-text-primary font-semibold text-sm" numberOfLines={1}>
+          <View className="flex-row items-center justify-between border-t border-border-light bg-surface-primary p-4">
+            <View className="mr-3 flex-1">
+              <Text className="text-sm font-semibold text-text-primary" numberOfLines={1}>
                 {userProfile?.name || userProfile?.email || 'User'}
               </Text>
-              <Text className="text-text-tertiary text-xs" numberOfLines={1}>
+              <Text className="text-xs text-text-tertiary" numberOfLines={1}>
                 {userProfile?.email}
               </Text>
             </View>
 
             <TouchableOpacity
               onPress={handleLogout}
-              className="flex-row items-center bg-surface-secondary px-3 py-2 rounded-lg border border-border-light"
+              className="flex-row items-center rounded-lg border border-border-light bg-surface-secondary px-3 py-2"
             >
               <LogOut size={14} color="#ef4444" />
-              <Text className="text-red-400 text-xs font-semibold ml-1.5">Sign Out</Text>
+              <Text className="ml-1.5 text-xs font-semibold text-red-400">Sign Out</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>

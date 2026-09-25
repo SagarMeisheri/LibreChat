@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
-} from 'react-native';
+import { Modal, View, Text, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { X, Code, Eye, Copy, Check } from 'lucide-react-native';
 
@@ -110,43 +103,43 @@ export function ArtifactModal({ visible, artifact, onClose }: ArtifactModalProps
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false}>
-      <SafeAreaView className="flex-1 bg-background">
+      <SafeAreaView className="bg-background flex-1">
         {/* Modal Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-border-light bg-surface-primary">
+        <View className="flex-row items-center justify-between border-b border-border-light bg-surface-primary px-4 py-3">
           <View className="flex-1">
-            <Text className="text-text-primary font-bold text-base" numberOfLines={1}>
+            <Text className="text-base font-bold text-text-primary" numberOfLines={1}>
               {artifact.title || 'Code Artifact'}
             </Text>
-            <Text className="text-text-tertiary text-xs uppercase">{artifact.type}</Text>
+            <Text className="text-xs uppercase text-text-tertiary">{artifact.type}</Text>
           </View>
 
           {/* Segmented View Toggle */}
-          <View className="flex-row bg-surface-secondary rounded-lg p-1 mx-3 border border-border-light">
+          <View className="mx-3 flex-row rounded-lg border border-border-light bg-surface-secondary p-1">
             <TouchableOpacity
               onPress={() => setActiveTab('preview')}
-              className={`flex-row items-center px-3 py-1.5 rounded-md ${
+              className={`flex-row items-center rounded-md px-3 py-1.5 ${
                 activeTab === 'preview' ? 'bg-brand-green' : 'bg-transparent'
               }`}
             >
               <Eye size={14} color="#ececec" />
-              <Text className="text-text-primary text-xs font-semibold ml-1.5">Preview</Text>
+              <Text className="ml-1.5 text-xs font-semibold text-text-primary">Preview</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setActiveTab('code')}
-              className={`flex-row items-center px-3 py-1.5 rounded-md ${
+              className={`flex-row items-center rounded-md px-3 py-1.5 ${
                 activeTab === 'code' ? 'bg-brand-green' : 'bg-transparent'
               }`}
             >
               <Code size={14} color="#ececec" />
-              <Text className="text-text-primary text-xs font-semibold ml-1.5">Code</Text>
+              <Text className="ml-1.5 text-xs font-semibold text-text-primary">Code</Text>
             </TouchableOpacity>
           </View>
 
           {/* Close Button */}
           <TouchableOpacity
             onPress={onClose}
-            className="w-8 h-8 rounded-full bg-surface-secondary items-center justify-center border border-border-light"
+            className="h-8 w-8 items-center justify-center rounded-full border border-border-light bg-surface-secondary"
           >
             <X size={18} color="#ececec" />
           </TouchableOpacity>
@@ -165,29 +158,27 @@ export function ArtifactModal({ visible, artifact, onClose }: ArtifactModalProps
           </View>
         ) : (
           <View className="flex-1 bg-surface-primary p-4">
-            <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-text-secondary text-xs">Source Code</Text>
+            <View className="mb-2 flex-row items-center justify-between">
+              <Text className="text-xs text-text-secondary">Source Code</Text>
               <TouchableOpacity
                 onPress={handleCopy}
-                className="flex-row items-center bg-surface-secondary px-2.5 py-1 rounded border border-border-light"
+                className="flex-row items-center rounded border border-border-light bg-surface-secondary px-2.5 py-1"
               >
                 {copied ? (
                   <>
                     <Check size={12} color="#10a37f" />
-                    <Text className="text-brand-green text-xs font-medium ml-1">Copied</Text>
+                    <Text className="text-brand-green ml-1 text-xs font-medium">Copied</Text>
                   </>
                 ) : (
                   <>
                     <Copy size={12} color="#ececec" />
-                    <Text className="text-text-primary text-xs font-medium ml-1">Copy</Text>
+                    <Text className="ml-1 text-xs font-medium text-text-primary">Copy</Text>
                   </>
                 )}
               </TouchableOpacity>
             </View>
-            <ScrollView className="flex-1 bg-[#111111] p-3 rounded-lg border border-border-light">
-              <Text className="text-[#a5d6ff] font-mono text-xs leading-5">
-                {artifact.content}
-              </Text>
+            <ScrollView className="flex-1 rounded-lg border border-border-light bg-[#111111] p-3">
+              <Text className="font-mono text-xs leading-5 text-[#a5d6ff]">{artifact.content}</Text>
             </ScrollView>
           </View>
         )}
