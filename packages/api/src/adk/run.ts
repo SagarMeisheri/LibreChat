@@ -110,7 +110,7 @@ export async function createAdkRun({
       instruction.includes('### Sources') || /cite|citations|references/i.test(instruction);
     if (!hasExistingCitationGuidance) {
       instruction +=
-        '\n\nWhen using search results or external tools to answer questions:\n1. Cite your sources inline using markdown links (e.g. [Source Name](url)).\n2. Include a "### Sources" section at the end of your response with a bulleted list of all sources used.';
+        '\n\nCITATION REQUIREMENTS:\nWhen answering with information retrieved from search or tools:\n1. Every factual claim MUST be cited inline using a clickable markdown link with the publication or source name as the link text (e.g., [Reuters](https://...) or [Space.com](https://...)). Never output bare unlinked numbers like [1] or [2] without markdown links.\n2. Conclude the response with a "### Sources" section containing a bulleted list of all cited sources with their article titles and URLs as markdown links.';
     }
   }
 

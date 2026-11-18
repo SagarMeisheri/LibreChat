@@ -50,14 +50,26 @@ export function sanitizeSchemaForGemini(
       key === '$schema' ||
       key === 'patternProperties' ||
       key === 'discriminator' ||
-      key === 'examples'
+      key === 'examples' ||
+      key === 'title' ||
+      key === 'additionalProperties'
     ) {
       continue;
     }
 
     if (key === 'const') {
       result.type = 'string';
-      result.enum = [value];
+      result.enum = [String(value)];
+      continue;
+    }
+
+    if (key === 'required' && Array.isArray(value)) {
+      result.required = value.filter((v): v is string => typeof v === 'string');
+      continue;
+    }
+
+    if (key === 'enum' && Array.isArray(value)) {
+      result.enum = value.map(String);
       continue;
     }
 
@@ -70,13 +82,8 @@ export function sanitizeSchemaForGemini(
       continue;
     }
 
-    if (key === 'items' && value) {
+    if (key === 'items' && value && typeof value === 'object') {
       result.items = sanitizeSchemaForGemini(value, allDefs);
-      continue;
-    }
-
-    if (key === 'additionalProperties' && typeof value === 'object' && value !== null) {
-      result.additionalProperties = sanitizeSchemaForGemini(value, allDefs);
       continue;
     }
 
@@ -97,8 +104,9 @@ export function sanitizeSchemaForGemini(
       continue;
     }
 
-    result[key] =
-      typeof value === 'object' && value !== null ? sanitizeSchemaForGemini(value, allDefs) : value;
+    if (typeof value !== 'object' || value === null) {
+      result[key] = value;
+    }
   }
 
   if (schemaRecord.patternProperties && !result.properties) {
