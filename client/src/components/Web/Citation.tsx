@@ -16,6 +16,7 @@ interface FileCitationMetadata {
 
 interface FileCitationSource {
   attribution?: string;
+  citationNumber?: number;
   fileId?: string;
   fileName?: string;
   link?: string;
@@ -51,6 +52,9 @@ function toSourceData(source: FileCitationSource): SourceData {
   };
 }
 
+/** Largest numbered group whose chip spells out every number; bigger groups read "4 +N". */
+const MAX_LISTED_NUMBERS = 3;
+
 interface CompositeCitationProps {
   citationId?: string;
   node?: {
@@ -76,9 +80,15 @@ export function CompositeCitation(props: CompositeCitationProps) {
       return localize('com_citation_source');
     }
 
+    const numbers = (sources as FileCitationSource[]).map((source) => source.citationNumber);
+    if (sources.length <= MAX_LISTED_NUMBERS && numbers.every((n) => n != null)) {
+      return numbers.join(', ');
+    }
+
     const firstSource = sources[0] as FileCitationSource;
     const remainingCount = sources.length - 1;
     const attribution =
+      (firstSource.citationNumber != null ? String(firstSource.citationNumber) : undefined) ||
       firstSource.attribution ||
       firstSource.title ||
       getCleanDomain(firstSource.link || '') ||
@@ -331,6 +341,7 @@ export function Citation(props: CitationComponentProps) {
 
   const getCitationLabel = () => {
     return (
+      (refData.citationNumber != null ? String(refData.citationNumber) : undefined) ||
       refData.attribution ||
       refData.title ||
       getCleanDomain(refData.link || '') ||

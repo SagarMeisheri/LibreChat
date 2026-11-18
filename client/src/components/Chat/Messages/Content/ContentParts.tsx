@@ -52,6 +52,7 @@ import MemoryArtifacts, { hasMemoryArtifacts } from './MemoryArtifacts';
 import { useMCPAppsPolicy } from '~/Providers/MCPAppsPolicyContext';
 import { selectToolCallUIResources } from '~/utils/mcpApps';
 import ActivityPhaseGroup from './ActivityPhaseGroup';
+import Footnotes from '~/components/Web/Footnotes';
 import EditContentParts from './EditContentParts';
 import { EmptyText, AgentUpdate } from './Parts';
 import ApprovalProvider from './ApprovalContext';
@@ -1643,6 +1644,7 @@ const ContentParts = memo(function ContentParts(props: ContentPartsProps) {
                 </MCPAppSuppressionContext.Provider>
               )}
             </SubagentAttachmentsContext.Provider>
+            {!props.edit && <Footnotes searchResults={props.searchResults} />}
           </ToolDisclosureContext.Provider>
         </ReasoningDisclosureContext.Provider>
       </MediaContext.Provider>

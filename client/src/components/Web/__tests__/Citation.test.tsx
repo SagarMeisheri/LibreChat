@@ -84,6 +84,35 @@ function renderWithProviders(
 }
 
 describe('Citation', () => {
+  it('labels a source with its citation number instead of its title, and keeps the title otherwise', () => {
+    const searchResults = {
+      '0': {
+        organic: [
+          { title: 'Numbered story', link: 'https://a.test/1', citationNumber: 3 },
+          { title: 'Plain story', link: 'https://b.test/2' },
+        ],
+      },
+    };
+    const node = (index: number) => ({
+      properties: {
+        citationId: `c${index}`,
+        citation: { turn: 0, refType: 'search', index },
+      },
+    });
+
+    renderWithProviders(
+      <>
+        <Citation citationId="c0" citationType="standalone" node={node(0)} />
+        <Citation citationId="c1" citationType="standalone" node={node(1)} />
+      </>,
+      searchResults,
+    );
+
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.queryByText('Numbered story')).not.toBeInTheDocument();
+    expect(screen.getByText('Plain story')).toBeInTheDocument();
+  });
+
   it('uses the semantic active surface for a highlighted passage', () => {
     const highlightedPassage = 'Highlighted passage';
     render(
@@ -95,6 +124,29 @@ describe('Citation', () => {
     );
 
     expect(screen.getByText(highlightedPassage)).toHaveClass('bg-surface-active');
+  });
+
+  it('spells out the numbers in a small grouped citation and collapses a large one', () => {
+    const organic = [4, 5, 6, 7].map((n) => ({
+      title: `Story ${n}`,
+      link: `https://s${n}.test/`,
+      citationNumber: n,
+    }));
+    const group = (indexes: number[]) => ({
+      properties: {
+        citationId: 'g',
+        citations: indexes.map((index) => ({ turn: 0, refType: 'search', index })),
+      },
+    });
+
+    const { unmount } = renderWithProviders(<CompositeCitation node={group([0, 2])} />, {
+      '0': { organic },
+    });
+    expect(screen.getByText('4, 6')).toBeInTheDocument();
+    unmount();
+
+    renderWithProviders(<CompositeCitation node={group([0, 1, 2, 3])} />, { '0': { organic } });
+    expect(screen.getByText('4 +3')).toBeInTheDocument();
   });
 
   it('renders composite file citations as buttons and opens the preview dialog', () => {

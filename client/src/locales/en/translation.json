@@ -1297,6 +1297,7 @@
   "com_sources_error_fallback": "Unable to load sources",
   "com_sources_image_alt": "Search result image",
   "com_sources_more_files": "+{{count}} files",
+  "com_sources_count": "Sources ({{count}})",
   "com_sources_more_sources": "+{{count}} sources",
   "com_sources_next": "Next source",
   "com_sources_number": "Source {{number}}",
