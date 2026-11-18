@@ -4786,6 +4786,13 @@ export const persistenceConfigSchema = z
 export const DEFAULT_CONFIG_CACHE_MAX_BYTES = 16 * 1024 * 1024;
 export const DEFAULT_CONFIG_CACHE_MAX_ENTRIES = 1000;
 
+export const adkConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  maxLlmCalls: z.number().int().positive().default(50),
+});
+
+export type TAdkConfig = z.infer<typeof adkConfigSchema>;
+
 export const configSchema = z.object({
   persistence: persistenceConfigSchema,
   version: z.string(),
@@ -5083,6 +5090,7 @@ export const configSchema = z.object({
   spreadsheetParsing: spreadsheetParsingSchema.optional(),
   fileConfig: fileConfigSchema.optional(),
   modelSpecs: specsConfigSchema.optional(),
+  adk: adkConfigSchema.optional(),
   filters: filtersConfigSchema.optional(),
   messageFilter: messageFilterSchema.optional(),
   endpoints: z

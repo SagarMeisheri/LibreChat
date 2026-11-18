@@ -151,6 +151,7 @@ import { getCustomEndpointConfig } from '~/app/config';
 import { applyTestRunHook } from '~/agents/testHook';
 import { frameDynamicInstructions } from './tail';
 import { isUserProvided } from '~/utils/common';
+import { createAdkRun } from '~/adk';
 
 /** Expected shape of JSON tool search results */
 interface ToolSearchJsonResult {
@@ -2486,6 +2487,20 @@ export async function createRun({
   'tokenCounter' | 'customHandlers' | 'indexTokenCountMap' | 'initialSessions'
 >): Promise<Run<IState>> {
   const resolvedRunId = runId ?? randomUUID();
+  if (appConfig?.adk?.enabled === true) {
+    logger.info('[ADK] adk.enabled is true, delegating to createAdkRun');
+    return (await createAdkRun({
+      agents,
+      signal,
+      runId: resolvedRunId,
+      conversationId,
+      customHandlers,
+      appConfig,
+      user,
+      messages,
+      requestBody,
+    })) as unknown as Run<IState>;
+  }
   const registration = resolveSdkAgentBinding(
     agents,
     appConfig?.endpoints?.agents,

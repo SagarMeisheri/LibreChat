@@ -85,6 +85,8 @@ export * from './memory';
 export * from './modelSpecs';
 /* Agents */
 export * from './agents';
+/* ADK */
+export * from './adk';
 /* Assistants */
 export * from './assistants';
 /* Actions */

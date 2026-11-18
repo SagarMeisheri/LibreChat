@@ -132,6 +132,8 @@ export interface AppConfig {
   mcpSettings?: TCustomConfig['mcpSettings'] | null;
   /** Deployment-owned MCP App sandbox transport limits. */
   mcpAppSandbox?: TCustomConfig['mcpAppSandbox'];
+  /** Google ADK Agent Harness configuration */
+  adk?: TCustomConfig['adk'];
   /** File configuration */
   fileConfig?: TFileConfig;
   spreadsheetParsing?: TCustomConfig['spreadsheetParsing'];
