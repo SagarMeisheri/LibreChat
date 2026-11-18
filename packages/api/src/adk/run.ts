@@ -1,11 +1,17 @@
 import { randomUUID } from 'crypto';
+import { GraphEvents } from '@librechat/agents';
 import { logger } from '@librechat/data-schemas';
-import { LlmAgent, InMemoryRunner, createEvent, StreamingMode } from '@google/adk';
+import { LlmAgent, InMemoryRunner, createEvent, StreamingMode, LLMRegistry } from '@google/adk';
 import type { BaseMessage } from '@librechat/agents/langchain/messages';
 import type { AppConfig, IUser } from '@librechat/data-schemas';
-import type { GenericTool } from '@librechat/agents';
+import type { GenericTool, LCTool } from '@librechat/agents';
+import { convertToolsToAdk, convertToolDefinitionsToAdk, createAdkToolRunState } from './tools';
+import { CITATION_FORMAT_INSTRUCTIONS } from '~/tools/toolkits/web';
 import { AdkStreamTranslator } from './translate';
-import { convertToolsToAdk } from './tools';
+import { SarvamTokenFactoryLlm } from './sarvam';
+import { generateAdkTitle } from './title';
+
+LLMRegistry.register(SarvamTokenFactoryLlm);
 
 export interface AdkRunAgent {
   id: string;
@@ -16,6 +22,12 @@ export interface AdkRunAgent {
   model_parameters?: Record<string, unknown> | null;
   tools?: GenericTool[];
   toolRegistry?: Map<string, unknown>;
+  /** Schema-only tools; executed through the host's `ON_TOOL_EXECUTE` handler. */
+  toolDefinitions?: LCTool[];
+  /** Tool prompts built at initialization, e.g. the `web_search` citation format. */
+  toolContextMap?: Record<string, unknown>;
+  dynamicToolContextMap?: Record<string, unknown>;
+  additional_instructions?: string | null;
   [key: string]: unknown;
 }
 
@@ -62,7 +74,12 @@ export interface AdkRunInstance {
   getInterrupt: () => undefined;
   generateActivityLabel: () => Promise<{ label: string }>;
   generateActivityPhaseLabel: () => Promise<{ label: string }>;
-  generateTitle: () => Promise<{ title: string }>;
+  generateTitle: (options: {
+    inputText: string;
+    contentParts?: unknown[];
+    titlePrompt?: string;
+    clientOptions?: unknown;
+  }) => Promise<{ title: string }>;
   resume: () => Promise<never>;
   processStream: (
     input: { messages?: BaseMessage[] },
@@ -93,25 +110,50 @@ export async function createAdkRun({
   } else if (typeof primaryAgent.model === 'string') {
     rawModel = primaryAgent.model;
   }
-  // Strip any 'google/' prefix if present
-  const modelName = rawModel.replace(/^google\//, '');
+  // Strip any 'google/' or 'sarvam/' provider prefix if present
+  const modelName = rawModel.replace(/^(google|sarvam)\//i, '');
   const agentName = primaryAgent.name
     ? primaryAgent.name.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 64)
     : 'primary_agent';
-  let instruction =
-    primaryAgent.instructions || primaryAgent.description || 'You are a helpful assistant.';
+  const joinInstructions = (map?: Record<string, unknown>) =>
+    Object.values(map ?? {})
+      .filter((value): value is string => typeof value === 'string' && value !== '')
+      .join('\n')
+      .trim();
 
-  const adkTools = convertToolsToAdk(primaryAgent.tools, primaryAgent.toolRegistry);
+  /** Same assembly as the LangGraph path: tool prompts, then agent instructions, then dynamic context. */
+  let instruction = [
+    joinInstructions(primaryAgent.toolContextMap),
+    primaryAgent.instructions || primaryAgent.description || 'You are a helpful assistant.',
+    joinInstructions(primaryAgent.dynamicToolContextMap),
+    primaryAgent.additional_instructions ?? '',
+  ]
+    .join('\n')
+    .trim();
+
+  const toolState = createAdkToolRunState();
+  const directTools = convertToolsToAdk(primaryAgent.tools, primaryAgent.toolRegistry, toolState);
+  const directNames = new Set(directTools.map((tool) => tool.name));
+  const eventTools = convertToolDefinitionsToAdk(
+    primaryAgent.toolDefinitions,
+    {
+      handler: customHandlers?.[GraphEvents.ON_TOOL_EXECUTE],
+      agentId: primaryAgent.id,
+      runId: resolvedRunId,
+      userId: user?.id,
+      conversationId,
+      signal,
+    },
+    toolState,
+    directNames,
+  );
+  const adkTools = [...directTools, ...eventTools];
   logger.info(`[ADK] Converted ${adkTools.length} tools for ADK agent`);
 
+  /** Anchors the UI resolves into citations; skipped when the `web_search` prompt already carries them. */
   const autoCitations = appConfig?.adk?.autoCitations ?? true;
-  if (autoCitations && adkTools.length > 0) {
-    const hasExistingCitationGuidance =
-      instruction.includes('### Sources') || /cite|citations|references/i.test(instruction);
-    if (!hasExistingCitationGuidance) {
-      instruction +=
-        '\n\nCITATION REQUIREMENTS:\nWhen answering with information retrieved from search or tools:\n1. Every factual claim MUST be cited inline using a clickable markdown link with the publication or source name as the link text (e.g., [Reuters](https://...) or [Space.com](https://...)). Never output bare unlinked numbers like [1] or [2] without markdown links.\n2. Conclude the response with a "### Sources" section containing a bulleted list of all cited sources with their article titles and URLs as markdown links.';
-    }
+  if (autoCitations && adkTools.length > 0 && !instruction.includes('ue202turn')) {
+    instruction += `\n\n# Citations\nWhen answering with information from search or tool results, cite each source by the anchor listed in that result.\n\n${CITATION_FORMAT_INSTRUCTIONS}`;
   }
 
   logger.info(`[ADK] Initializing LlmAgent with model: ${modelName}, agentName: ${agentName}`);
@@ -119,7 +161,8 @@ export async function createAdkRun({
   const llmAgent = new LlmAgent({
     name: agentName,
     model: modelName,
-    instruction,
+    /** A provider skips ADK's `{var}` state templating; prompts here contain literal braces. */
+    instruction: () => instruction,
     tools: adkTools,
   });
 
@@ -139,6 +182,7 @@ export async function createAdkRun({
       agentId: primaryAgent.id,
       modelName,
       customHandlers,
+      searchResults: toolState.searchResults,
     });
 
     const session = await runner.sessionService.createSession({
@@ -240,7 +284,18 @@ export async function createAdkRun({
     getInterrupt: () => undefined,
     generateActivityLabel: async () => ({ label: '' }),
     generateActivityPhaseLabel: async () => ({ label: '' }),
-    generateTitle: async () => ({ title: '' }),
+    generateTitle: async ({ inputText, contentParts, titlePrompt, clientOptions }) => {
+      /** Prefer the endpoint's configured title model; otherwise reuse the run's model. */
+      const requested = (clientOptions as { model?: string } | undefined)?.model;
+      const titleModel = (requested ?? modelName).replace(/^(google|sarvam)\//i, '');
+      return generateAdkTitle({
+        llm: LLMRegistry.newLlm(titleModel),
+        inputText,
+        contentParts,
+        titlePrompt,
+        signal,
+      });
+    },
     resume: async () => {
       throw new Error('[ADK] Human-in-the-loop resume is not supported in ADK mode.');
     },

@@ -11,6 +11,8 @@ export interface Highlight {
 export type ProcessedSource = {
   content?: string;
   attribution?: string;
+  /** Run-wide source number; when set, citations and the source list show it in place of the title. */
+  citationNumber?: number;
   references?: References;
   highlights?: Highlight[];
   processed?: boolean;

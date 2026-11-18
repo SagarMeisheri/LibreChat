@@ -210,6 +210,7 @@ export const AppService = async (params?: {
   const langfuse = loadLangfuseConfig(config);
 
   const defaultConfig = {
+    adk: config.adk,
     ocr,
     paths,
     config,

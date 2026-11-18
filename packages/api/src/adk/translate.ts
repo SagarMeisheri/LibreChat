@@ -1,12 +1,28 @@
 import { randomUUID } from 'crypto';
 import { GraphEvents } from '@librechat/agents';
 import { logger } from '@librechat/data-schemas';
-import { StepTypes } from 'librechat-data-provider';
+import { StepTypes, Tools } from 'librechat-data-provider';
 import type { GenerateContentResponseUsageMetadata } from '@google/genai';
+import type { SearchResultData } from 'librechat-data-provider';
 import type { Event } from '@google/adk';
+
+/** The tool's plain text: the wrapped `result` string when present, else its JSON. */
+function toolOutputText(response: unknown): string {
+  if (typeof response === 'string') return response;
+  const result = (response as { result?: unknown } | undefined)?.result;
+  return typeof result === 'string' ? result : JSON.stringify(response ?? {});
+}
+
+/** The client reads tool-call args as a JSON string, as the agents SDK emits them. */
+function serializeArgs(args: unknown): string {
+  if (typeof args === 'string') return args;
+  return JSON.stringify(args ?? {});
+}
 
 export interface AdkStreamTranslatorOptions {
   runId: string;
+  /** Search sources captured by the tool wrappers, keyed by tool call id. */
+  searchResults?: Map<string, SearchResultData>;
   conversationId?: string;
   agentId?: string;
   modelName?: string;
@@ -40,9 +56,11 @@ export class AdkStreamTranslator {
   private reasoningDeltaCount = 0;
 
   private pendingToolSteps = new Map<string, PendingToolStep>();
+  private searchResults?: Map<string, SearchResultData>;
 
   constructor(options: AdkStreamTranslatorOptions) {
     this.runId = options.runId;
+    this.searchResults = options.searchResults;
     this.conversationId = options.conversationId;
     this.agentId = options.agentId || 'primary_agent';
     this.modelName = options.modelName || 'gemini';
@@ -131,6 +149,8 @@ export class AdkStreamTranslator {
       this.reasoningDeltaCount = 0;
 
       await this.dispatch(GraphEvents.ON_RUN_STEP, {
+        runId: this.runId,
+        agentId: this.agentId,
         id: this.currentReasoningStepId,
         type: StepTypes.MESSAGE_CREATION,
         index: this.currentReasoningStepIndex,
@@ -180,6 +200,8 @@ export class AdkStreamTranslator {
       this.messageDeltaCount = 0;
 
       await this.dispatch(GraphEvents.ON_RUN_STEP, {
+        runId: this.runId,
+        agentId: this.agentId,
         id: this.currentMessageStepId,
         type: StepTypes.MESSAGE_CREATION,
         index: this.currentMessageStepIndex,
@@ -251,6 +273,8 @@ export class AdkStreamTranslator {
     this.pendingToolSteps.set(name, pending);
 
     await this.dispatch(GraphEvents.ON_RUN_STEP, {
+      runId: this.runId,
+      agentId: this.agentId,
       id: toolStepId,
       type: StepTypes.TOOL_CALLS,
       index: stepIndex,
@@ -259,16 +283,9 @@ export class AdkStreamTranslator {
         tool_calls: [
           {
             id: toolCallId,
-            type: 'function',
+            type: 'tool_call',
             name,
-            function: {
-              name,
-              arguments:
-                typeof functionCall.args === 'string'
-                  ? functionCall.args
-                  : JSON.stringify(functionCall.args ?? {}),
-            },
-            args: functionCall.args,
+            args: serializeArgs(functionCall.args),
           },
         ],
       },
@@ -288,24 +305,45 @@ export class AdkStreamTranslator {
       (functionResponse.name ? this.pendingToolSteps.get(functionResponse.name) : undefined);
 
     if (step) {
-      const outputText =
-        typeof functionResponse.response === 'string'
-          ? functionResponse.response
-          : JSON.stringify(functionResponse.response ?? {});
+      const outputText = toolOutputText(functionResponse.response);
 
       await this.dispatch(GraphEvents.ON_RUN_STEP_COMPLETED, {
-        id: step.id,
         result: {
           id: step.id,
+          index: step.index,
+          type: 'tool_call',
           tool_call: {
             id: step.toolCallId,
             name: step.name,
-            args: step.args,
+            args: serializeArgs(step.args),
+            output: outputText,
+            progress: 1,
           },
-          output: outputText,
           completed_at: Date.now(),
         },
       });
+
+      const searchData = this.searchResults?.get(functionResponse.id ?? step.toolCallId);
+      if (searchData?.organic?.length) {
+        logger.info(
+          `[ADK][Translator] Emitting web_search attachment for tool ${step.name} with ${searchData.organic.length} sources`,
+        );
+        /** The host's TOOL_END handler ignores events that arrive without a graph. */
+        const graphStub = { toolCallStepIds: new Map([[step.toolCallId, step.id]]) };
+        await this.dispatch(
+          GraphEvents.TOOL_END,
+          {
+            output: {
+              name: step.name,
+              tool_call_id: step.toolCallId,
+              artifact: {
+                [Tools.web_search]: searchData,
+              },
+            },
+          },
+          graphStub,
+        );
+      }
 
       await this.dispatch(GraphEvents.ON_RUN_STEP_CLOSED, {
         id: step.id,
@@ -326,6 +364,11 @@ export class AdkStreamTranslator {
   }
 
   public async handleEvent(event: Event): Promise<void> {
+    if (event.errorCode) {
+      logger.error(`[ADK][Translator] Model error ${event.errorCode}: ${event.errorMessage ?? ''}`);
+      throw new Error(`The model request failed (${event.errorCode}).`);
+    }
+
     if (event.usageMetadata) {
       await this.handleUsage(event.usageMetadata);
     }
