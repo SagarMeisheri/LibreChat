@@ -77,6 +77,7 @@ export async function createAdkRun({
   runId,
   conversationId,
   customHandlers,
+  appConfig,
   user,
   messages: initialMessages,
 }: CreateAdkRunOptions): Promise<AdkRunInstance> {
@@ -97,13 +98,23 @@ export async function createAdkRun({
   const agentName = primaryAgent.name
     ? primaryAgent.name.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 64)
     : 'primary_agent';
-  const instruction =
+  let instruction =
     primaryAgent.instructions || primaryAgent.description || 'You are a helpful assistant.';
-
-  logger.info(`[ADK] Initializing LlmAgent with model: ${modelName}, agentName: ${agentName}`);
 
   const adkTools = convertToolsToAdk(primaryAgent.tools, primaryAgent.toolRegistry);
   logger.info(`[ADK] Converted ${adkTools.length} tools for ADK agent`);
+
+  const autoCitations = appConfig?.adk?.autoCitations ?? true;
+  if (autoCitations && adkTools.length > 0) {
+    const hasExistingCitationGuidance =
+      instruction.includes('### Sources') || /cite|citations|references/i.test(instruction);
+    if (!hasExistingCitationGuidance) {
+      instruction +=
+        '\n\nWhen using search results or external tools to answer questions:\n1. Cite your sources inline using markdown links (e.g. [Source Name](url)).\n2. Include a "### Sources" section at the end of your response with a bulleted list of all sources used.';
+    }
+  }
+
+  logger.info(`[ADK] Initializing LlmAgent with model: ${modelName}, agentName: ${agentName}`);
 
   const llmAgent = new LlmAgent({
     name: agentName,

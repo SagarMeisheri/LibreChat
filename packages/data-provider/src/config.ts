@@ -4789,6 +4789,7 @@ export const DEFAULT_CONFIG_CACHE_MAX_ENTRIES = 1000;
 export const adkConfigSchema = z.object({
   enabled: z.boolean().default(false),
   maxLlmCalls: z.number().int().positive().default(50),
+  autoCitations: z.boolean().default(true),
 });
 
 export type TAdkConfig = z.infer<typeof adkConfigSchema>;
